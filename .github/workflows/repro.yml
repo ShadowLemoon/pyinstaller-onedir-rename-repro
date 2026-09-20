@@ -59,4 +59,5 @@ jobs:
         with:
           name: bundle-${{ matrix.pyinstaller }}
           path: dist/toy
+          include-hidden-files: true
           if-no-files-found: error
