@@ -10,29 +10,35 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        pyinstaller: ["6.7.0", "6.16.0", "6.21.0"]
+        include:
+          - pyinstaller: "6.7.0"
+            python: "3.11.12"
+          - pyinstaller: "6.16.0"
+            python: "3.11.12"
+          - pyinstaller: "6.21.0"
+            python: "3.11.12"
+          - pyinstaller: "6.21.0"
+            python: "3.11.9"
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
+      - name: Install uv
+        run: python -m pip install --upgrade pip uv
 
-      - name: Show environment
+      - name: Create venv with Python ${{ matrix.python }}
         run: |
-          python -V
-          python -c "import platform; print(platform.platform())"
+          uv python install ${{ matrix.python }}
+          uv venv --python ${{ matrix.python }} .venv
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install "pyinstaller==${{ matrix.pyinstaller }}"
-          pip install "PySide6" "PySide6-Fluent-Widgets==1.11.2" "setuptools"
-          pip list
+          uv pip install --python .venv/Scripts/python.exe "pyinstaller==${{ matrix.pyinstaller }}"
+          uv pip install --python .venv/Scripts/python.exe "PySide6" "PySide6-Fluent-Widgets==1.11.2" "setuptools"
+          .venv/Scripts/python.exe -V
 
       - name: Build onedir bundle
         run: |
-          pyinstaller --onedir --noconfirm --clean --contents-directory .runtime toy.py
+          .venv/Scripts/python.exe -m PyInstaller --onedir --noconfirm --clean --contents-directory .runtime toy.py
 
       - name: Run app and probe renames
         shell: pwsh
@@ -42,22 +48,13 @@ jobs:
           $p = Start-Process -FilePath $exe -WorkingDirectory (Join-Path $PWD "dist\toy") -PassThru
           Start-Sleep -Seconds 10
           Write-Host "app alive: $(-not $p.HasExited)"
-          python probe.py
+          .venv/Scripts/python.exe probe.py
           Get-Content probe_result.txt
 
       - name: Upload probe result
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: probe-result-${{ matrix.pyinstaller }}
+          name: probe-${{ matrix.pyinstaller }}-py${{ matrix.python }}
           path: probe_result.txt
           if-no-files-found: warn
-
-      - name: Upload bundle
-        if: matrix.pyinstaller == '6.21.0'
-        uses: actions/upload-artifact@v4
-        with:
-          name: bundle-${{ matrix.pyinstaller }}
-          path: dist/toy
-          include-hidden-files: true
-          if-no-files-found: error
