@@ -21,7 +21,7 @@ jobs:
       - name: Show environment
         run: |
           python -V
-          ver
+          python -c "import platform; print(platform.platform())"
 
       - name: Install dependencies
         run: |
