@@ -45,10 +45,18 @@ jobs:
           python probe.py
           Get-Content probe_result.txt
 
-      - name: Upload bundle info
+      - name: Upload probe result
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: probe-result-${{ matrix.pyinstaller }}
           path: probe_result.txt
           if-no-files-found: warn
+
+      - name: Upload bundle
+        if: matrix.pyinstaller == '6.21.0'
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundle-${{ matrix.pyinstaller }}
+          path: dist/toy
+          if-no-files-found: error
